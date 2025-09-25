@@ -63,15 +63,17 @@ final class MatchingScoreResolverTest extends AbstractTestCase
         
         // This is the failing case mentioned by @vasilvestre
         // Searching for "rename" should show "RenameClass" as it starts with "rename"
+        // The issue is about the rule "title" or "name" (getRuleShortClass()) shown in UI
         $ruleMetadata = new RuleMetadata(
             'Rector\Renaming\Rector\Class_\RenameClassRector',
-            'Rename class to new one',
+            'Some unrelated description without the search term',
             [],
             [],
             'some-rector.php'
         );
         
-        // Test that searching for "rename" finds "RenameClassRector"
+        // The rule title/name displayed in UI is: getRuleShortClass() = "RenameClassRector"
+        // When searching for "rename", this should be found because "RenameClassRector" starts with "rename"
         $scoreLowercase = $matchingScoreResolver->resolve($ruleMetadata, 'rename');
         $scoreUppercase = $matchingScoreResolver->resolve($ruleMetadata, 'RENAME');
         $scoreMixedCase = $matchingScoreResolver->resolve($ruleMetadata, 'Rename');
@@ -79,10 +81,34 @@ final class MatchingScoreResolverTest extends AbstractTestCase
         // All should have the same positive score since "RenameClassRector" starts with "rename"
         $this->assertSame($scoreLowercase, $scoreUppercase);
         $this->assertSame($scoreLowercase, $scoreMixedCase);
-        $this->assertTrue($scoreLowercase > 0, 'Score should be greater than 0 when class name starts with search term "rename"');
+        $this->assertTrue($scoreLowercase > 0, 'Score should be greater than 0 when rule name/title starts with search term "rename"');
         
-        // Additional verification: the score should be high since class name starts with the search term
-        $this->assertGreaterThanOrEqual(10, $scoreLowercase, 'Score should be at least 10 for class name starting with the search term');
+        // Additional verification: the score should be high since rule name starts with the search term
+        $this->assertGreaterThanOrEqual(10, $scoreLowercase, 'Score should be at least 10 for rule name starting with the search term');
+    }
+    
+    public function testRuleNameTitleMatchingIsCaseInsensitive(): void
+    {
+        $matchingScoreResolver = $this->make(MatchingScoreResolver::class);
+        
+        // Test a rule whose name/title starts with different cases
+        $ruleMetadata = new RuleMetadata(
+            'SomeNamespace\RenameClass',  // Short class name will be "RenameClass"
+            'Description without search term',
+            [],
+            [],
+            'some-rule.php'
+        );
+        
+        // Test that all case variations find the rule based on its title/name
+        $scoreLower = $matchingScoreResolver->resolve($ruleMetadata, 'rename');
+        $scoreUpper = $matchingScoreResolver->resolve($ruleMetadata, 'RENAME');
+        $scoreMixed = $matchingScoreResolver->resolve($ruleMetadata, 'Rename');
+        
+        // All should have the same score
+        $this->assertSame($scoreLower, $scoreUpper);
+        $this->assertSame($scoreLower, $scoreMixed);
+        $this->assertTrue($scoreLower > 0, 'Should find rule when title/name starts with search term');
     }
     
     public function testNoMatchReturnsZero(): void
