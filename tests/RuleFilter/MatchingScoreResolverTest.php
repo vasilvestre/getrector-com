@@ -57,6 +57,34 @@ final class MatchingScoreResolverTest extends AbstractTestCase
         $this->assertTrue($scoreOriginal > 0, 'Score should be greater than 0 when description contains search terms');
     }
     
+    public function testRenameQueryShouldFindRenameClassRector(): void
+    {
+        $matchingScoreResolver = $this->make(MatchingScoreResolver::class);
+        
+        // This is the failing case mentioned by @vasilvestre
+        // Searching for "rename" should show "RenameClass" as it starts with "rename"
+        $ruleMetadata = new RuleMetadata(
+            'Rector\Renaming\Rector\Class_\RenameClassRector',
+            'Rename class to new one',
+            [],
+            [],
+            'some-rector.php'
+        );
+        
+        // Test that searching for "rename" finds "RenameClassRector"
+        $scoreLowercase = $matchingScoreResolver->resolve($ruleMetadata, 'rename');
+        $scoreUppercase = $matchingScoreResolver->resolve($ruleMetadata, 'RENAME');
+        $scoreMixedCase = $matchingScoreResolver->resolve($ruleMetadata, 'Rename');
+        
+        // All should have the same positive score since "RenameClassRector" starts with "rename"
+        $this->assertSame($scoreLowercase, $scoreUppercase);
+        $this->assertSame($scoreLowercase, $scoreMixedCase);
+        $this->assertTrue($scoreLowercase > 0, 'Score should be greater than 0 when class name starts with search term "rename"');
+        
+        // Additional verification: the score should be high since class name starts with the search term
+        $this->assertGreaterThanOrEqual(10, $scoreLowercase, 'Score should be at least 10 for class name starting with the search term');
+    }
+    
     public function testNoMatchReturnsZero(): void
     {
         $matchingScoreResolver = $this->make(MatchingScoreResolver::class);

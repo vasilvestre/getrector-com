@@ -25,6 +25,11 @@ final class MatchingScoreResolver
             }
         }
 
+        // Check if short class name starts with query (higher priority)
+        if (substr_count($query, ' ') === 0 && str_starts_with(strtolower($ruleMetadata->getRuleShortClass()), $lowercasedQuery)) {
+            return 15;
+        }
+
         if (str_contains(strtolower($ruleMetadata->getRectorClass()), $lowercasedQuery)) {
             return 5;
         }
