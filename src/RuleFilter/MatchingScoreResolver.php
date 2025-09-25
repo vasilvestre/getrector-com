@@ -52,7 +52,7 @@ final class MatchingScoreResolver
         }
 
         foreach ($queryParts as $queryPart) {
-            if (str_contains($ruleMetadata->getDescription(), $queryPart)) {
+            if (str_contains(strtolower($ruleMetadata->getDescription()), $queryPart)) {
                 ++$score;
             }
         }
